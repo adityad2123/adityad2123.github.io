@@ -1,0 +1,129 @@
+:root {
+  --bg:   #e8e8e6;
+  --ink:  #121212;
+  --blue: #1c3fcc;
+  --line: #c7c7c2;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: clamp(2.5rem, 8vw, 6rem) clamp(1.25rem, 6vw, 3.5rem);
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1.15rem/1.6 "EB Garamond", Garamond, "Adobe Garamond Pro", Baskerville, Georgia, serif;
+}
+
+main { max-width: 62rem; margin: 0 auto; }
+
+/* --- masthead --- */
+
+.label {
+  text-transform: uppercase;
+  letter-spacing: .2em;
+  font-size: .72rem;
+  color: var(--blue);
+  margin: 0 0 1.25rem;
+}
+
+h1 {
+  font-weight: 400;
+  font-size: clamp(2.75rem, 8vw, 5rem);
+  line-height: 1.02;
+  letter-spacing: -.02em;
+  margin: 0 0 1.5rem;
+}
+
+.lede { font-size: 1.35rem; font-style: italic; margin: 0; }
+
+/* --- sections --- */
+
+section {
+  margin-top: clamp(3.5rem, 9vw, 6.5rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ink);
+}
+
+h2 {
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: .01em;
+  margin: 0 0 .4rem;
+}
+
+/* the aside before each part */
+.quip {
+  font-style: italic;
+  font-size: 1.25rem;
+  color: var(--blue);
+  margin: 0 0 2.25rem;
+}
+
+/* --- image rows --- */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+figure { flex: 1 1 14rem; max-width: 20rem; margin: 0; }
+figure.wide { flex-basis: 28rem; max-width: 34rem; }
+
+img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  padding: .5rem;
+  border: 1px solid var(--line);
+}
+
+figcaption {
+  text-align: center;
+  margin-top: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  font-size: .7rem;
+  color: #5a5a56;
+}
+
+/* --- links --- */
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+}
+
+a:hover { background: var(--blue); color: #fff; border-color: transparent; }
+
+.back { display: inline-block; margin-bottom: 3rem; font-size: .95rem; }
+
+/* --- home page index --- */
+
+.index { list-style: none; padding: 0; margin: 3.5rem 0 0; }
+
+.index li { border-top: 1px solid var(--ink); }
+
+.index a {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.5rem;
+  align-items: baseline;
+  padding: 1.25rem 0;
+  border: 0;
+  font-size: 1.9rem;
+}
+
+.index a span {
+  font-style: italic;
+  font-size: 1.05rem;
+  color: #5a5a56;
+}
+
+.index a:hover { background: none; color: var(--blue); }
+.index a:hover span { color: var(--blue); }
