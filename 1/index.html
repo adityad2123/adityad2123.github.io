@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project 1</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<main>
+    <a class="back" href="../index.html">&larr; Portfolio</a>
+    <p class="label">Project 1: Colorizing the Prokudin-Gorskii Photo Collection</p>
+
+    <p>We’re hoping to take the digitized Prokudin-Gorskii glass plate images and align the blue, red, &amp; green channels to form a single color image. It’s an interesting task; we need some method of determining the best way to align these images that scales as images get large.</p>
+
+    <section>
+        <h2>Single-scale alignment</h2>
+
+        <p>Naively, we can just search over a range of displacements. And this works for the smaller JPG images; they’re not that big (a height of around 340 pixels per channel), and through experimentation, we find that generally searching through a displacement of +/&#8722; 15 leads to good alignment (the maximum shift magnitude is 7 for the three that we test).</p>
+
+        <p>Even going through this exercise helps us clarify a few details. One, what does it mean to displace the image? Essentially, we’re shifting the image for a given channel left or right, up or down by a few pixels—and checking whether it aligns better with some baseline channel (for example, blue). When we shift, the image is going to be a different size, so we wrap the image around using our friend np.roll.</p>
+
+        <p>Next, how do we quantify “alignment”? There are two metrics we can use. First is L2 norm, or Euclidean distance, given by:</p>
+
+        <!-- AI-assisted in converting LaTeX to HTML math -->
+        <math display="block" displaystyle="true">
+            <mrow>
+                <msub><mi>L</mi><mn>2</mn></msub>
+                <mo stretchy="false">(</mo>
+                <msub><mi>img</mi><mn>1</mn></msub><mo>,</mo>
+                <msub><mi>img</mi><mn>2</mn></msub>
+                <mo stretchy="false">)</mo>
+                <mo>=</mo>
+                <msqrt>
+                    <munder>
+                        <mo>&#x2211;</mo>
+                        <mrow><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo><mo>&#x2208;</mo><mi>&#x3A9;</mi></mrow>
+                    </munder>
+                    <msup>
+                        <mrow>
+                            <mo>(</mo>
+                            <msub><mi>img</mi><mn>1</mn></msub><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo>
+                            <mo>&#x2212;</mo>
+                            <msub><mi>img</mi><mn>2</mn></msub><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo>
+                            <mo>)</mo>
+                        </mrow>
+                        <mn>2</mn>
+                    </msup>
+                </msqrt>
+            </mrow>
+        </math>
+
+        <p>where <math><mi>&#x3A9;</mi></math> is the set of pixels we use to align the image. Intuitively, we’re just treating each of the images as a 1-D vector (for all pixels in <math><mi>&#x3A9;</mi></math>) and finding the distance between the two vectors.</p>
+
+        <p>But if there are lighting or brightness inconsistencies between two channels or even within a channel, those are magnified. That means we might not converge to the “optimal” displacement due to simple irregularities in the image. In contrast, Normalized Cross-Correlation (NCC)—intuitively just a dot product between normalized vectors—takes care of these issues by normalizing each image and calculating similarity. Mathematically, it’s given by</p>
+
+        <!-- AI-assisted in converting LaTeX to HTML math -->
+        <math display="block" displaystyle="true">
+            <mrow>
+                <mi>NCC</mi>
+                <mo stretchy="false">(</mo>
+                <msub><mi>img</mi><mn>1</mn></msub><mo>,</mo>
+                <msub><mi>img</mi><mn>2</mn></msub>
+                <mo stretchy="false">)</mo>
+                <mo>=</mo>
+                <mfrac>
+                    <mrow>
+                        <munder>
+                            <mo>&#x2211;</mo>
+                            <mrow><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo><mo>&#x2208;</mo><mi>&#x3A9;</mi></mrow>
+                        </munder>
+                        <mo>(</mo>
+                        <msub><mi>img</mi><mn>1</mn></msub><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo>
+                        <mo>&#x2212;</mo>
+                        <msub><mi>&#x3BC;</mi><mn>1</mn></msub>
+                        <mo>)</mo>
+                        <mo>(</mo>
+                        <msub><mi>img</mi><mn>2</mn></msub><mo>(</mo><mi>i</mi><mo>,</mo><mi>j</mi><mo>)</mo>
+                        <mo>&#x2212;</mo>
+                        <msub><mi>&#x3BC;</mi><mn>2</mn></msub>
+                        <mo>)</mo>
+                    </mrow>
+                    <mrow>
+                        <msub>
+                            <mrow><mo>&#x2016;</mo><msub><mi>img</mi><mn>1</mn></msub><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mn>1</mn></msub><mo>&#x2016;</mo></mrow>
+                            <mn>2</mn>
+                        </msub>
+                        <mspace width=".3em"></mspace>
+                        <msub>
+                            <mrow><mo>&#x2016;</mo><msub><mi>img</mi><mn>2</mn></msub><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mn>2</mn></msub><mo>&#x2016;</mo></mrow>
+                            <mn>2</mn>
+                        </msub>
+                    </mrow>
+                </mfrac>
+            </mrow>
+        </math>
+
+        <p>where <math><msub><mi>&#x3BC;</mi><mn>1</mn></msub></math> and <math><msub><mi>&#x3BC;</mi><mn>2</mn></msub></math> are the mean pixel value over <math><mi>&#x3A9;</mi></math> for images 1 and 2 respectively. Our goal is for the best alignment: minimizing L2 norm or maximizing NCC. We formulate this optimization search in the code as a maximization problem, and thus maximize the negative L2 norm. However, NCC, in its invariance to per-channel brightness, is more reliable and thus used to align the final images.</p>
+
+        <p>And then there’s the border question; the edges of these images are super noisy, and they’re not super consistent. We find that all of the raw images have some white border at the top and bottom that splitting the long image into three channels (by merely cutting it into thirds, per the starter code provided) leads to inconsistencies in per-channel whitespace. To remedy this, we crop the first and last 0.5% of the image before splitting it into channels. Separately, we set <math><mi>&#x3A9;</mi></math> to be the middle 80% of the image (cropping the top/bottom/left/right 10%) and compute the quantities above (NCC/L2) on that subset, so we only align these images based on their interior (which is what carries the signal).</p>
+    </section>
+
+    <section>
+        <h2>Single-scale results</h2>
+        <p class="quip">Here are the results on the three single scale images.</p>
+        <p>We provide the displacements as (x, y) coordinates, representing the horizontal and vertical pixel shifts from the baseline (Green is aligned against Blue, Red is aligned against the Aligned Green—more details on this below). No defects to see here :)</p>
+        <div class="row">
+            <figure>
+                <img src="out/out_cathedral.jpg" alt="Cathedral, aligned" loading="lazy">
+                <figcaption>cathedral &middot; G (2, 1) &middot; R (3, 4)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_monastery.jpg" alt="Monastery, aligned" loading="lazy">
+                <figcaption>monastery &middot; G (2, &#8722;7) &middot; R (3, &#8722;5)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_tobolsk.jpg" alt="Tobolsk, aligned" loading="lazy">
+                <figcaption>tobolsk &middot; G (3, &#8722;1) &middot; R (4, &#8722;1)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+        </div>
+    </section>
+
+    <section>
+        <h2>Multi-scale alignment</h2>
+
+        <p>When the images get larger, we have to construct an image pyramid. We continually downsample the image, reducing its height and width by factors of 2 (floor division) until we reach the “smallest” image (determined by me as having a height &lt; 500 pixels, corresponding to the size of our small JPGs for single-scale alignment). To implement this, I use skimage.transform.resize—with the anti-aliasing flag turned on. Under the hood, it essentially creates a Gaussian kernel with the appropriate standard deviation for our downscaling factor, and applies the blur to create a coarser image. In doing this low-pass filtering, we mitigate the aliasing and misrepresentation effects that naive resizing would cause.</p>
+
+        <p>Once we reach this base image, we’re able to do an exhaustive search over a big window of displacements. Then, we can find the best displacement on the coarser image; if the displacement is (x, y), that corresponds to (2x, 2y) on the scaled-up image. Then we have a rough idea of how much we need to shift, but we obviously want a finer representation; however, the whole point of this resampling mechanism is to ensure that we don’t have to search a big window of displacements each time. So for these larger images, we start with searching a displacement size of +/&#8722; 2 on the largest image, and scale that by 2 every time we resize the image by a factor of ½. That way, on the smallest image, we search a wide range of displacements, and as the image gets larger, we search smaller and smaller ranges. This proved to increase efficiency without compromising results. We implement this recursively: resizing until we reach a base case, then aligning, and then feeding the new candidate displacements and displacement sizes upstream—until we get the final displacement number on our original image. Note that to standardize our work with JPGs and TIFs, we converted the image data type to floats; then when saving to JPG, I convert back to an 8-bit unsigned integer format.</p>
+
+        <p>Finally, the starter code has us align both the green and red images to the blue image. This doesn’t work perfectly, particularly for the emir; there’s clear misalignment of the red channel relative to the other two. However, if you align the green image to the blue, and then the red image to the aligned version of the green image, the artifacts go away—and the emir is much better aligned. I hypothesize this is just due to the fact that red and green are closer in wavelength than red and blue; so there are likely to be more similarities on key image features, making the alignment less noisy and easier to find.</p>
+
+        <p>Note that the multi-scale alignment for the three single-scale images was essentially the same, as they directly hit the base case. I thus show the results for the other 11 TIFs below.</p>
+    </section>
+
+    <section>
+        <h2>Multi-scale results</h2>
+        <p class="quip">Here are the multi-scale result alignments.</p>
+        <div class="row">
+            <figure>
+                <img src="out/out_church.jpg" alt="Church, aligned" loading="lazy">
+                <figcaption>church &middot; G (4, &#8722;7) &middot; R (&#8722;4, &#8722;6)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_emir.jpg" alt="Emir, aligned" loading="lazy">
+                <figcaption>emir &middot; G (24, 16) &middot; R (41, 40)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_harvesters.jpg" alt="Harvesters, aligned" loading="lazy">
+                <figcaption>harvesters &middot; G (17, 28) &middot; R (14, 61)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_icon.jpg" alt="Icon, aligned" loading="lazy">
+                <figcaption>icon &middot; G (17, 8) &middot; R (22, 23)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_ilemselga.jpg" alt="Ilemselga, aligned" loading="lazy">
+                <figcaption>ilemselga &middot; G (7, 7) &middot; R (11, 64)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_melons.jpg" alt="Melons, aligned" loading="lazy">
+                <figcaption>melons &middot; G (10, 50) &middot; R (14, 114)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_religous_painting.jpg" alt="Religious painting, aligned" loading="lazy">
+                <figcaption>religious painting &middot; G (3, &#8722;4) &middot; R (7, 5)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_self_portrait.jpg" alt="Self portrait, aligned" loading="lazy">
+                <figcaption>self portrait &middot; G (29, 47) &middot; R (37, 113)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_siren.jpg" alt="Siren, aligned" loading="lazy">
+                <figcaption>siren &middot; G (&#8722;6, 17) &middot; R (&#8722;24, 32)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_three_generations.jpg" alt="Three generations, aligned" loading="lazy">
+                <figcaption>three generations &middot; G (14, 21) &middot; R (11, 47)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_wharf.jpg" alt="Wharf, aligned" loading="lazy">
+                <figcaption>wharf &middot; G (&#8722;7, &#8722;17) &middot; R (&#8722;16, 18)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+        </div>
+    </section>
+
+    <section>
+        <h2>Three of my own picks</h2>
+        <p class="quip">I chose three images from the library that I called meadow, monument, and mosque. The results are below.</p>
+        <div class="row">
+            <figure>
+                <img src="out/out_meadow.jpg" alt="Meadow, aligned" loading="lazy">
+                <figcaption>meadow &middot; G (12, &#8722;2) &middot; R (6, 12)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_monument.jpg" alt="Monument, aligned" loading="lazy">
+                <figcaption>monument &middot; G (6, &#8722;4) &middot; R (13, 40)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+            <figure>
+                <img src="out/out_mosque.jpg" alt="Mosque, aligned" loading="lazy">
+                <figcaption>mosque &middot; G (35, 23) &middot; R (62, 62)</figcaption>
+                <p class="note"><!-- optional comment --></p>
+            </figure>
+        </div>
+    </section>
+
+    <section>
+        <h2>Reflection</h2>
+        <p>Overall, none of the images seem to have large alignment defect issues. Nevertheless, there are still minor imperfections. It’s important to note the noisiness of the borders and edges across all of these images, a product of our imperfect cropping heuristics. In addition, many of the people in the back of the harvesters image are not perfectly aligned, likely due to motion in the image. The same is true with the red glow off of the beard of the left man in three generations. And there are blotches of color in these images (see the green square in self-portrait, and the more noisy dots in melons). These are likely imperfections and noise within each color channel that—while not impeding alignment—result in imperfect colorization.</p>
+    </section>
+</main>
+</body>
+</html>
