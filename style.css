@@ -39,11 +39,7 @@ h1 {
 
 /* --- sections --- */
 
-section {
-  margin-top: clamp(3.5rem, 9vw, 6.5rem);
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--ink);
-}
+section { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
 
 h2 {
   font-weight: 700;
@@ -91,6 +87,15 @@ figcaption {
   color: #5a5a56;
 }
 
+/* per-image comment space under a caption; empty until filled */
+.note { margin: .5rem 0 0; font-size: .95rem; font-style: italic; text-align: center; }
+
+/* --- prose extras --- */
+
+code { font-size: .88em; }
+
+math[display="block"] { margin: 1.5rem 0; font-size: 1.2rem; }
+
 /* --- links --- */
 
 a {
@@ -106,8 +111,6 @@ a:hover { background: var(--blue); color: #fff; border-color: transparent; }
 /* --- home page index --- */
 
 .index { list-style: none; padding: 0; margin: 3.5rem 0 0; }
-
-.index li { border-top: 1px solid var(--ink); }
 
 .index a {
   display: flex;
