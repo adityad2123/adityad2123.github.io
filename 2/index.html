@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project 2</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        /* full-width figures for multi-panel images (stacks, sweeps, figure 3.42) */
+        figure.full { flex-basis: 100%; max-width: 100%; }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="../index.html">&larr; Portfolio</a>
+    <p class="label">Project 2: Fun with Filters and Frequencies</p>
+
+    <!-- ===================== 1.1 ===================== -->
+    <section>
+        <h2>1.1</h2>
+
+        <p>Here’s the convolution implementation with 4 loops. We first ensure that our kernel is 2-dimensional, and it has odd heights and widths to ensure the convolution is symmetric. We implement same padding; this requires padding the image before convolution with the kernel height or width, subtracted by 1, then integer-divided by 2. This makes sense; with a 3x3 kernel, we want to add 1 extra space on each side of the image so that our image ends up being the same side once the convolution is done. That way, the first convolution will be on the square with diagonal (0, 0) to (2, 2), centered at (1, 1) on the padded image &rarr; which is (0, 0) on the initial image.</p>
+
+        <p>For convolution, we must flip the kernel. Then, we essentially iterate through each image pixel (with i for height and j for width). At each image pixel, we apply the kernel by iterating through the kernel height and kernel width, and adding the pixel value there scaled by the corresponding flipped kernel value to a running total. This running total, after the full dot product operation, gets placed on our final_image, which starts out as a 2D array of 0s but is filled after the operation.</p>
+
+        <p>This implementation on the image of me was relatively slow, at 5.8513s.</p>
+
+        <div class="row">
+            <figure class="full">
+                <img src="submission/inputs/code4.png" alt="convolve4loops code" loading="lazy">
+                <figcaption>convolve4loops</figcaption>
+            </figure>
+        </div>
+
+        <p>The convolve function with 2 loops is largely the same, except we use vectorization for our dot product. Once we have the i, j corresponding to the pixel we’d like to apply the kernel to, we directly do the dot product on the corresponding range of the padded image with our kernel. This saves a substantial amount of time, at 0.5747s.</p>
+
+        <div class="row">
+            <figure class="full">
+                <img src="submission/inputs/code2.png" alt="convolve2loops code" loading="lazy">
+                <figcaption>convolve2loops</figcaption>
+            </figure>
+        </div>
+
+        <p>The scipy implementation is the quickest, at only 0.0248s. Lots of optimization! I use same padding, and I fill the boundary with 0s to match our implementation. I also verify the correctness of my implementation by convolving an image of myself with a 9x9 box kernel and verifying that all three implementations produce the same output image (with np.allclose).</p>
+
+        <p>Here are the three output images.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/original_gray.jpg" alt="Original grayscale image" loading="lazy">
+                <figcaption>original (grayscale)</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/box_4loops.jpg" alt="Box filter, 4 loops" loading="lazy">
+                <figcaption>9x9 box &middot; 4 loops &middot; 5.8513s</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/box_2loops.jpg" alt="Box filter, 2 loops" loading="lazy">
+                <figcaption>9x9 box &middot; 2 loops &middot; 0.5747s</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/box_scipy.jpg" alt="Box filter, scipy" loading="lazy">
+                <figcaption>9x9 box &middot; scipy &middot; 0.0248s</figcaption>
+            </figure>
+        </div>
+
+        <p>We see that each of them have a slight black blur around the edges/border. This is due to the fact that we pad with 0s, so the convolution around the edges with the box kernel results in lower-magnitude pixel values.</p>
+
+        <p>We also convolve with the derivative filters. We can see D_x recovers vertical edges, and D_y recovers horizontal edges!</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/me_D_x.jpg" alt="Image of me convolved with D_x" loading="lazy">
+                <figcaption>D_x</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/me_D_y.jpg" alt="Image of me convolved with D_y" loading="lazy">
+                <figcaption>D_y</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- ===================== 1.2 ===================== -->
+    <section>
+        <h2>1.2</h2>
+
+        <p>Here’s the cameraman image.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/cameraman.png" alt="Cameraman" loading="lazy">
+                <figcaption>cameraman</figcaption>
+            </figure>
+        </div>
+
+        <p>First, we find the partial derivatives, noticing a similar pattern to above.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/cameraman_D_x.jpg" alt="Cameraman D_x" loading="lazy">
+                <figcaption>cameraman &middot; D_x</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cameraman_D_y.jpg" alt="Cameraman D_y" loading="lazy">
+                <figcaption>cameraman &middot; D_y</figcaption>
+            </figure>
+        </div>
+
+        <p>To find the gradient magnitude image, we take the pixel values from cameraman_D_x and cameraman_D_y (the two partials), square them, add elementwise, and take the square root. We see it identifying rough edges!</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/cameraman_gradient.jpg" alt="Cameraman gradient magnitude" loading="lazy">
+                <figcaption>gradient magnitude</figcaption>
+            </figure>
+        </div>
+
+        <p>By binarizing the image by setting pixels meeting a certain threshold to 1 (and the others to 0), we can get sharper, more defined edges. However, identifying this threshold requires testing candidates; too small, and we’ll capture noise. Too large, and we’ll lose meaningful edge signal. I sweep over an initially small range before narrowing it down and choosing my final threshold of 0.25, which I found struck the best balance, tolerating some noise in the background to minimize the loss of the cameraman’s outline.</p>
+
+        <div class="row">
+            <figure class="full">
+                <img src="submission/out_p1/thresholds.png" alt="Threshold sweep" loading="lazy">
+                <figcaption>threshold sweep</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cameraman_edges.jpg" alt="Binarized edges at threshold 0.25" loading="lazy">
+                <figcaption>edges &middot; threshold 0.25</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- ===================== 1.3 ===================== -->
+    <section>
+        <h2>1.3</h2>
+
+        <p>The results in 1.2 were still noisy. To correct this, I use a Gaussian kernel. For all Gaussian kernels in this project, I use a fixed sigma corresponding to the kernel size by the formula (s - 1) / 6, where s is the kernel height/width (kernel is square). Gaussian filters create blurs, as we see below.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/cameraman.png" alt="Cameraman original" loading="lazy">
+                <figcaption>original</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cameraman_blurred.jpg" alt="Cameraman blurred" loading="lazy">
+                <figcaption>blurred</figcaption>
+            </figure>
+        </div>
+
+        <p>I can then convolve the image with our derivative filers, compute the gradient magnitude image, and finally find a threshold for the best image.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/cam_blur_D_x.jpg" alt="Blurred cameraman D_x" loading="lazy">
+                <figcaption>blurred &middot; D_x</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cam_blur_D_y.jpg" alt="Blurred cameraman D_y" loading="lazy">
+                <figcaption>blurred &middot; D_y</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cameraman_gradient_m1.jpg" alt="Blurred gradient magnitude" loading="lazy">
+                <figcaption>gradient magnitude</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_p1/thresholds_m1.png" alt="Threshold sweep, blurred" loading="lazy">
+                <figcaption>threshold sweep</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cameraman_edges_method1.jpg" alt="Edges, method 1" loading="lazy">
+                <figcaption>edges &middot; threshold 0.125</figcaption>
+            </figure>
+        </div>
+
+        <p>Alternatively,weI can do the same thing with a single convolution by convolving the Gaussian with out derivative filters. Here are the resulting filters visualized after the convolution (I use same padding as well for consistency).</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/filter_G.jpg" alt="Gaussian filter" loading="lazy">
+                <figcaption>gaussian</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/filter_DoG_x.jpg" alt="DoG_x filter" loading="lazy">
+                <figcaption>DoG_x</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/filter_DoG_y.jpg" alt="DoG_y filter" loading="lazy">
+                <figcaption>DoG_y</figcaption>
+            </figure>
+        </div>
+
+        <p>As we can see, DoG_x recovers vertical edges, and DoG_y recovers horizontal edges. We can then convolve the original cameraman image with both these filters. We get the same results as above.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p1/cam_blur_D_x_g.jpg" alt="Cameraman DoG_x" loading="lazy">
+                <figcaption>DoG_x</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cam_blur_D_y_g.jpg" alt="Cameraman DoG_y" loading="lazy">
+                <figcaption>DoG_y</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p1/cameraman_edges_method2.jpg" alt="Edges, method 2" loading="lazy">
+                <figcaption>edges &middot; threshold 0.125</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- ===================== 2.1 ===================== -->
+    <section>
+        <h2>2.1</h2>
+
+        <p>A low-pass, or blur, filter applies a Gaussian kernel to the image. Then, if we subtract this low-frequency, blurred image from the original image, we recover the sharp details that were initially filtered out. This is our high-frequency image; it keeps only those details that were smoothed out by the low-pass filter. We can apply this to the Taj Mahal.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/taj.jpg" alt="Taj Mahal original" loading="lazy">
+                <figcaption>original</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_blurred.jpg" alt="Taj Mahal low-pass" loading="lazy">
+                <figcaption>low-pass</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_high.jpg" alt="Taj Mahal high-pass" loading="lazy">
+                <figcaption>high-pass</figcaption>
+            </figure>
+        </div>
+
+        <p>We can then take this difference and add it back to our original image with some weight alpha. This gets us the unsharp mask filter. Nice properties of convolutions (namely, that when you convolve an image with the impulse, you get the same image, along with commutativity, associativity, and distributivity) let us condense the unsharp mask filter into one kernel as below, where f is the original image, g is the gaussian kernel, e is the impulse, and alpha is the weight we’re giving to our high-frequency image. (This equation is taken from the class slides)</p>
+
+        <div class="row">
+            <figure class="full">
+                <img src="submission/inputs/unsharp_eq.png" alt="f + alpha(f - f*g) = (1+alpha)f - alpha f*g = f*((1+alpha)e - alpha g)" loading="lazy">
+            </figure>
+        </div>
+
+        <p>As alpha increases, i.e. as we increase the amount of the high-pass filtered image we add, the image becomes a lot sharper and grainier. We can see this very clearly with the Taj Mahal image.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p2/taj_alpha_0.jpg" alt="Taj, alpha 0" loading="lazy">
+                <figcaption>alpha = 0</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_alpha_0.5.jpg" alt="Taj, alpha 0.5" loading="lazy">
+                <figcaption>alpha = 0.5</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_alpha_1.jpg" alt="Taj, alpha 1" loading="lazy">
+                <figcaption>alpha = 1</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_alpha_2.jpg" alt="Taj, alpha 2" loading="lazy">
+                <figcaption>alpha = 2</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_alpha_5.jpg" alt="Taj, alpha 5" loading="lazy">
+                <figcaption>alpha = 5</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/taj_alpha_10.jpg" alt="Taj, alpha 10" loading="lazy">
+                <figcaption>alpha = 10</figcaption>
+            </figure>
+        </div>
+
+        <p>I also did this on a little festive image of myself. I had to go up to alpha = 10, but you can very clearly see the sharp detail, particularly on my messy hair.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_p2/pumpkin_alpha_0.jpg" alt="Pumpkin, alpha 0" loading="lazy">
+                <figcaption>alpha = 0</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/pumpkin_alpha_0.5.jpg" alt="Pumpkin, alpha 0.5" loading="lazy">
+                <figcaption>alpha = 0.5</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/pumpkin_alpha_1.jpg" alt="Pumpkin, alpha 1" loading="lazy">
+                <figcaption>alpha = 1</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/pumpkin_alpha_2.jpg" alt="Pumpkin, alpha 2" loading="lazy">
+                <figcaption>alpha = 2</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/pumpkin_alpha_5.jpg" alt="Pumpkin, alpha 5" loading="lazy">
+                <figcaption>alpha = 5</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_p2/pumpkin_alpha_10.jpg" alt="Pumpkin, alpha 10" loading="lazy">
+                <figcaption>alpha = 10</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- ===================== 2.2 ===================== -->
+    <section>
+        <h2>2.2</h2>
+
+        <p>For the hybrid images, one image receives the low-pass filter, and the other receives the high-pass filter, following the practice in Oliva et al. The cutoff frequency of each filter had to be calibrated to for each pair; I calibrated this frequency by adjusting the sigma value of the Gaussian kernel. To compensate, this meant that we had different Gaussian kernel sizes so I could keep the (s-1)/6 ratio. In this case, we compute the kernel size from the sigma, 2 * (3 * sigma) + 1 so the height/width is still odd. I record sigma values with the images; generally, the low-frequency image needed a sigma that was 3-8 units higher than the high-frequency image.</p>
+
+        <p>We produce three sets of hybrid images. Here are the first two.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/puffin.jpg" alt="Puffin" loading="lazy">
+                <figcaption>puffin &middot; low-pass &middot; sigma 15</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/inputs/baseball.jpg" alt="Baseball" loading="lazy">
+                <figcaption>baseball &middot; high-pass &middot; sigma 7</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/puffin_baseball_hybrid.jpg" alt="Puffin and baseball hybrid" loading="lazy">
+                <figcaption>hybrid</figcaption>
+            </figure>
+        </div>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/derek.jpg" alt="Derek" loading="lazy">
+                <figcaption>derek &middot; low-pass &middot; sigma 15</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/inputs/nutmeg.jpg" alt="Nutmeg" loading="lazy">
+                <figcaption>nutmeg &middot; high-pass &middot; sigma 7</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/derek_nutmeg_hybrid.jpg" alt="Derek and Nutmeg hybrid" loading="lazy">
+                <figcaption>hybrid</figcaption>
+            </figure>
+        </div>
+
+        <p>For the third, I’ll show the entire process. We first align the ends of the banana and telephone.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/telephone.jpg" alt="Telephone" loading="lazy">
+                <figcaption>telephone &middot; original</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/inputs/banana.jpg" alt="Banana" loading="lazy">
+                <figcaption>banana &middot; original</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/telephone_aligned.jpg" alt="Telephone aligned" loading="lazy">
+                <figcaption>telephone &middot; aligned</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/banana_aligned.jpg" alt="Banana aligned" loading="lazy">
+                <figcaption>banana &middot; aligned</figcaption>
+            </figure>
+        </div>
+
+        <p>When we apply the low-pass filter to the telephone, we see that circular mask that keeps the central bright region and darkens out the extremities of the image. I chose a sigma of 7 here; I initially had a higher sigma, but the telephone was not recognizable even from a far distance, so I had to reduce it.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_hybrid/banana_telephone2_fourier_im1.png" alt="Telephone Fourier transform" loading="lazy">
+                <figcaption>telephone &middot; FFT</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/banana_telephone2_fourier_im1_low.png" alt="Low-passed telephone Fourier transform" loading="lazy">
+                <figcaption>telephone &middot; low-pass FFT &middot; sigma 7</figcaption>
+            </figure>
+        </div>
+
+        <p>In contrast, when we apply the high-pass filter to the banana, we see the reverse effects; the extremities of the image brighten, and the center gets slightly darker. But we can still clearly see it’s the same image with the distinctive pattern on the vertical and horizontal. I chose a sigma of 4 here; this was balanced relative to the choice of the telephone to ensure the banana faded away at a distance but was still clear up close.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_hybrid/banana_telephone2_fourier_im2.png" alt="Banana Fourier transform" loading="lazy">
+                <figcaption>banana &middot; FFT</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/banana_telephone2_fourier_im2_high.png" alt="High-passed banana Fourier transform" loading="lazy">
+                <figcaption>banana &middot; high-pass FFT &middot; sigma 4</figcaption>
+            </figure>
+        </div>
+
+        <p>The Fourier transformation of the image sum reflects the low-frequency patterns of the telephone (namely, the bright center and verticals/horizontals) and the high-frequency patterns of the banana (the strobe pattern).</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_hybrid/banana_telephone2_fourier_hybrid.png" alt="Hybrid Fourier transform" loading="lazy">
+                <figcaption>hybrid &middot; FFT</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_hybrid/banana_telephone2_hybrid.jpg" alt="Banana and telephone hybrid" loading="lazy">
+                <figcaption>hybrid</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <!-- ===================== 2.3 / 2.4 ===================== -->
+    <section>
+        <h2>2.3/2.4</h2>
+
+        <p>First, I implement a Gaussian and Laplacian stack. For the Gaussian stack, I choose a constant kernel size and sigma, and continually apply the filter. I.e. G[i] = G[i-1] * (gaussian filter). For the Laplacian stack, I iterate through the Gaussian stack, such that L[i] = G[i] - G[i+1]. For L[0], this is the original image minus the blurred image, to get the resulting details. The last term of the Laplacian stack is just the last term of the Gaussian stack, i.e. L[i] = G[i].</p>
+
+        <p>We can plot out the Gaussian and Laplacian stacks for the orange and apple here. I use a kernel size of 23 and 15 levels of the stack, chosen through just experimentation for good blending. For the sake of space, I only plot increments of three, along with the last element of the stack.</p>
+
+        <div class="row">
+            <figure class="full">
+                <img src="submission/out_multi/oraple_stack_a.jpg" alt="Apple Gaussian and Laplacian stacks" loading="lazy">
+                <figcaption>apple &middot; gaussian (top) and laplacian (bottom) stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/oraple_stack_b.jpg" alt="Orange Gaussian and Laplacian stacks" loading="lazy">
+                <figcaption>orange &middot; gaussian (top) and laplacian (bottom) stacks</figcaption>
+            </figure>
+        </div>
+
+        <p>Then to blend, we first create a mask. We can construct a variety of custom masks based on an image, or just a straightforward vertical or horizontal mask by simply initializing an array of size image_height x image_width to 0, and setting the left/right half or top/bottom half to 1. I use an implementation similar to align_images to choose a polygonal mask for each image, so we can construct both these vertical and horizontal masks but also any custom nonlinear (but straight-edged) one.</p>
+
+        <p>Once we make a mask, we must build a Gaussian stack. Then, to reconstruct, we multiply the Gaussian-transformed mask at index/level i with the Laplacian at the corresponding index for the first image (the one we want to be nonzero for the map). This gives us, intuitively, the part of the aspects of the first image we want to keep, at the frequency corresponding to index i. Then similarly, we multiply 1 - the Gaussian-transformed mask at the same level with the Laplacian for the second image, to extract the aspects of the second image we want to keep. These are added together to form the blended image for that level. If we sum the blended image at all levels, we get the combined image! This makes sense, as at the lowest level, the element in the Laplacian stack reduces to the element in the Gaussian stack, so we’re combining two low-frequency images. Then we add the details captured by the Laplacian at each corresponding level.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/out_multi/oraple_mask.jpg" alt="Oraple mask" loading="lazy">
+                <figcaption>mask</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/oraple_blend.jpg" alt="Oraple blend" loading="lazy">
+                <figcaption>oraple</figcaption>
+            </figure>
+        </div>
+
+        <p>We can visualize the full process with the figure below, recreated to match the results in Figure 3.42.</p>
+
+        <div class="row">
+            <figure class="full">
+                <img src="submission/out_multi/oraple_figure.jpg" alt="Figure 3.42 recreation for the oraple" loading="lazy">
+                <figcaption>figure 3.42 recreation &middot; levels 0, 5, 10, and the full sum</figcaption>
+            </figure>
+        </div>
+
+        <p>We can also do the same process with two other sets of images.</p>
+
+        <p>First, I tried connecting the Golden Gate and the Bay Bridge. This was difficult, as there were many areas where I wanted these bridges to connect, but each has a different aspect ratio. I ultimately chose to ensure they connected at the top and the middle road, sacrificing the bottom pillar and ocean connection. But it’s still pretty cool! I just used a simple vertical mask. All figures are below.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/golden.png" alt="Golden Gate" loading="lazy">
+                <figcaption>golden gate</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/inputs/bay.png" alt="Bay Bridge" loading="lazy">
+                <figcaption>bay bridge</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/bridges_mask.jpg" alt="Bridges mask" loading="lazy">
+                <figcaption>mask</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/bridges_blend.jpg" alt="Bridges blend" loading="lazy">
+                <figcaption>blend</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/bridges_stack_a.jpg" alt="Golden Gate stacks" loading="lazy">
+                <figcaption>golden gate &middot; gaussian and laplacian stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/bridges_stack_b.jpg" alt="Bay Bridge stacks" loading="lazy">
+                <figcaption>bay bridge &middot; gaussian and laplacian stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/bridges_figure.jpg" alt="Bridges blending figure" loading="lazy">
+                <figcaption>blending by level</figcaption>
+            </figure>
+        </div>
+
+        <p>Then second, for the nonlinear mask, I had an image of a traffic cone on the street and an ice cream cone. I replaced the traffic cone with the ice cream cone, and used a triangular mask to do so. This was difficult; because this method is built for blending—and not necessarily sharp edges—the pink background of the ice cream cone image bled a little bit into the street of the traffic cone.</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/icecream.png" alt="Ice cream cone" loading="lazy">
+                <figcaption>ice cream cone</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/inputs/traffic.png" alt="Traffic cone" loading="lazy">
+                <figcaption>traffic cone</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/cones_mask.jpg" alt="Cones mask" loading="lazy">
+                <figcaption>mask</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/cones_blend.jpg" alt="Cones blend" loading="lazy">
+                <figcaption>blend</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/cones_stack_a.jpg" alt="Ice cream cone stacks" loading="lazy">
+                <figcaption>ice cream cone &middot; gaussian and laplacian stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/cones_stack_b.jpg" alt="Traffic cone stacks" loading="lazy">
+                <figcaption>traffic cone &middot; gaussian and laplacian stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/cones_figure.jpg" alt="Cones blending figure" loading="lazy">
+                <figcaption>blending by level</figcaption>
+            </figure>
+        </div>
+
+        <p>Finally, I realized that the nonlinear mask couldn’t just include straight lines, so I did a third hybrid! I created a custom elliptical mask. I modified my make_mask function to take a parameter to create an ellipse, defined by the centers and major/minor axes (essentially radii), and applied it to create a dazed sun. You essentially plot the two corners that the ellipse gets bounded by, and the mask is created. Results below!</p>
+
+        <div class="row">
+            <figure>
+                <img src="submission/inputs/dazed.png" alt="Dazed" loading="lazy">
+                <figcaption>dazed</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/inputs/sun.png" alt="Sun" loading="lazy">
+                <figcaption>sun</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/eepy_mask.jpg" alt="Elliptical mask" loading="lazy">
+                <figcaption>mask</figcaption>
+            </figure>
+            <figure>
+                <img src="submission/out_multi/eepy_blend.jpg" alt="Dazed sun blend" loading="lazy">
+                <figcaption>blend</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/eepy_stack_a.jpg" alt="Dazed stacks" loading="lazy">
+                <figcaption>dazed &middot; gaussian and laplacian stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/eepy_stack_b.jpg" alt="Sun stacks" loading="lazy">
+                <figcaption>sun &middot; gaussian and laplacian stacks</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="submission/out_multi/eepy_figure.jpg" alt="Dazed sun blending figure" loading="lazy">
+                <figcaption>blending by level</figcaption>
+            </figure>
+        </div>
+    </section>
+</main>
+</body>
+</html>
