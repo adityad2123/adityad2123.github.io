@@ -68,6 +68,17 @@ h2 {
 
 figure { flex: 1 1 14rem; max-width: 20rem; margin: 0; }
 figure.wide { flex-basis: 28rem; max-width: 34rem; }
+figure.half { flex-basis: 22rem; max-width: 28rem; }
+figure.full { flex: 1 1 100%; max-width: 100%; }
+figure.tiny { flex: 0 0 auto; max-width: 7rem; }
+
+h3 { font-weight: 700; font-size: 1.15rem; margin: 2.75rem 0 .5rem; }
+
+.part {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  margin-top: clamp(3.5rem, 8vw, 5.5rem);
+  letter-spacing: -.01em;
+}
 
 img {
   display: block;
