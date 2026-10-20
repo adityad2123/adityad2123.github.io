@@ -1,0 +1,3 @@
+# Project 1
+
+All the raw results are in the `results` folder. I also have the Jupyter notebooks (uploaded from Kaggle) in part_a_code and part_b_code. Some outputs on the notebook may be stale; I reran parts of the notebook as I iterated on the project (and updated code accordingly here), but didn't rerun the whole Kaggle notebook (which would have taken more GPUs and time.) TLDR Code is up to date, outputs on notebook may not be. The outputs on the website are "ground truth."
