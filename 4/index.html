@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project 4</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<main>
+    <a class="back" href="../index.html">&larr; Portfolio</a>
+    <p class="label">Project 4: Image Warping and Mosaicing</p>
+
+    <section>
+        <h2>A.1</h2>
+        <p>Here are the images I’ve shot. All of them are projective transforms, so I fixed my center of projection and only rotated the camera.</p>
+
+        <p>The first set of images are from a sunset at Salt Point State Park.</p>
+        <div class="row">
+            <figure>
+                <img src="images/cliff1.jpg" alt="Cliff, left view" loading="lazy">
+                <figcaption>left</figcaption>
+            </figure>
+            <figure>
+                <img src="images/cliff2.jpg" alt="Cliff, reference view" loading="lazy">
+                <figcaption>reference</figcaption>
+            </figure>
+            <figure>
+                <img src="images/cliff3.jpg" alt="Cliff, right view" loading="lazy">
+                <figcaption>right</figcaption>
+            </figure>
+        </div>
+
+        <p>The second set of images are from a building on campus.</p>
+        <div class="row">
+            <figure>
+                <img src="images/building1.jpg" alt="Building, left view" loading="lazy">
+                <figcaption>left</figcaption>
+            </figure>
+            <figure>
+                <img src="images/building2.jpg" alt="Building, reference view" loading="lazy">
+                <figcaption>reference</figcaption>
+            </figure>
+            <figure>
+                <img src="images/building3.jpg" alt="Building, right view" loading="lazy">
+                <figcaption>right</figcaption>
+            </figure>
+        </div>
+
+        <p>The third set of images were taken in the basement of Gateway.</p>
+        <div class="row">
+            <figure>
+                <img src="images/gateway1.jpg" alt="Gateway, left view" loading="lazy">
+                <figcaption>left</figcaption>
+            </figure>
+            <figure>
+                <img src="images/gateway2.jpg" alt="Gateway, reference view" loading="lazy">
+                <figcaption>reference</figcaption>
+            </figure>
+            <figure>
+                <img src="images/gateway3.jpg" alt="Gateway, right view" loading="lazy">
+                <figcaption>right</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <section>
+        <h2>A.2</h2>
+        <p><code>H = computeH(im1_pts, im2_pts)</code></p>
+        <p>Here’s my implementation of the system of equations.</p>
+<pre><code>def compute_H(im1_pts, im2_pts):
+    A = []
+    b = []
+    for (x1, y1), (x2, y2) in zip(im1_pts, im2_pts):
+        A.append([x1, y1, 1, 0, 0, 0, -1*x1*x2, -1*y1*x2])
+        A.append([0, 0, 0, x1, y1, 1, -1*x1*y2, -1*y1*y2])
+        b.append(x2)
+        b.append(y2)
+    A = np.array(A)
+    b = np.array(b)
+    x, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
+    H = np.append(x, 1).reshape(3, 3)
+    print("H matrix", H)
+    return H</code></pre>
+
+        <p>Essentially, we want to compute the eight degrees of freedom in matrix</p>
+        <div class="eq">
+            <span class="lbl">H =</span>
+            <span class="mat"><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span><span>1</span></span>
+        </div>
+        <p>In equation form, we have <em>p′</em> = H<em>p</em>, where <em>p′</em> = [<em>wx′ wy′ w</em>] (column vector) and <em>p</em> = [<em>x y</em> 1] (column vector), since both <em>p′</em> and <em>p</em> are in homogenous coordinates.</p>
+        <p>Thus we have</p>
+        <div class="eq"><em>wx′</em> = <em>ax</em> + <em>by</em> + <em>c</em>, &nbsp;&nbsp; <em>wy′</em> = <em>dx</em> + <em>ey</em> + <em>f</em>, &nbsp;&nbsp; <em>w</em> = <em>gx</em> + <em>hy</em> + 1</div>
+        <p>If we divide both sides by <em>w</em>, we get <em>wx′</em>/<em>w</em> = <em>x′</em> = (<em>ax</em>+<em>by</em>+<em>c</em>)/(<em>gx</em>+<em>hy</em>+1). If we multiply both sides by <em>gx</em>+<em>hy</em>+1 and isolate <em>x′</em>, we have</p>
+        <div class="eq"><em>x′</em>(<em>gx</em> + <em>hy</em> + 1) = <em>ax</em> + <em>by</em> + <em>c</em></div>
+        <div class="eq"><em>gxx′</em> + <em>hyx′</em> + <em>x′</em> = <em>ax</em> + <em>by</em> + <em>c</em></div>
+        <div class="eq"><em>x′</em> = <em>ax</em> + <em>by</em> + <em>c</em> &minus; <em>gxx′</em> &minus; <em>hyx′</em></div>
+        <p>Thus if we set this up as a least-squares regression problem where we need to solve for eight-dimensional vector <strong>h</strong> = [<em>a b c d e f g h</em>] (column vector), we want to add the row [<em>x y</em> 1 0 0 0 &minus;<em>x′x</em> &minus;<em>x′y</em>] to design matrix A with target [<em>x′</em>].</p>
+        <p>We can parallel this setup for <em>y′</em>, and we will get <em>y′</em> = <em>dx</em> + <em>ey</em> + <em>f</em> &minus; <em>gxy′</em> &minus; <em>hyy′</em> with target [<em>y′</em>].</p>
+        <p>Thus for each point we get two equations. We only need 4 systems of equations to recover a matrix, but we choose to use least-squares and solve an overdetermined system to recover a better estimate, as clicking points can be prone to noise.</p>
+        <p>For all three panoramas, we want to project onto the middle reference image. Thus we compute <code>compute_H(left, ref)</code> and <code>compute_H(right, ref)</code> such that H tells us how to map the coordinates of some image to the reference.</p>
+        <p>Thus for these correspondence images, the right image corresponds to the reference image, and the left image corresponds to either the left/right image that we are mapping coordinates onto the reference for.</p>
+
+        <h3>Cliff</h3>
+        <p>I used 10 correspondence points for each pair.</p>
+        <div class="row">
+            <figure class="full">
+                <img src="outputs/cliff1_cliff2_correspondences.jpg" alt="Cliff left to reference correspondences" loading="lazy">
+                <figcaption>left &rarr; reference</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/cliff3_cliff2_correspondences.jpg" alt="Cliff right to reference correspondences" loading="lazy">
+                <figcaption>right &rarr; reference</figcaption>
+            </figure>
+        </div>
+        <div class="eq">
+            <span class="lbl">H<sub>left&rarr;ref</sub> =</span>
+            <span class="mat"><span>1.60</span><span>&minus;0.06</span><span>&minus;574.38</span><span>0.24</span><span>1.37</span><span>&minus;205.42</span><span>4.10e&minus;4</span><span>1.15e&minus;6</span><span>1.00</span></span>
+        </div>
+        <div class="eq">
+            <span class="lbl">H<sub>right&rarr;ref</sub> =</span>
+            <span class="mat"><span>0.50</span><span>&minus;0.08</span><span>472.42</span><span>&minus;0.18</span><span>0.70</span><span>136.81</span><span>&minus;2.89e&minus;4</span><span>&minus;1.11e&minus;4</span><span>1.00</span></span>
+        </div>
+
+        <h3>Building</h3>
+        <p>I used 22 correspondence points for the left pair and 19 for the right pair.</p>
+        <div class="row">
+            <figure class="full">
+                <img src="outputs/building1_building2_correspondences.jpg" alt="Building left to reference correspondences" loading="lazy">
+                <figcaption>left &rarr; reference</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/building3_building2_correspondences.jpg" alt="Building right to reference correspondences" loading="lazy">
+                <figcaption>right &rarr; reference</figcaption>
+            </figure>
+        </div>
+        <div class="eq">
+            <span class="lbl">H<sub>left&rarr;ref</sub> =</span>
+            <span class="mat"><span>1.56</span><span>&minus;0.11</span><span>&minus;541.35</span><span>0.31</span><span>1.33</span><span>&minus;256.87</span><span>4.05e&minus;4</span><span>5.98e&minus;7</span><span>1.00</span></span>
+        </div>
+        <div class="eq">
+            <span class="lbl">H<sub>right&rarr;ref</sub> =</span>
+            <span class="mat"><span>0.60</span><span>0.04</span><span>371.52</span><span>&minus;0.19</span><span>0.84</span><span>92.21</span><span>&minus;2.78e&minus;4</span><span>&minus;1.47e&minus;6</span><span>1.00</span></span>
+        </div>
+
+        <h3>Gateway</h3>
+        <p>I used 18 correspondence points for the left pair and 15 for the right pair.</p>
+        <div class="row">
+            <figure class="full">
+                <img src="outputs/gateway1_gateway2_correspondences.jpg" alt="Gateway left to reference correspondences" loading="lazy">
+                <figcaption>left &rarr; reference</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/gateway3_gateway2_correspondences.jpg" alt="Gateway right to reference correspondences" loading="lazy">
+                <figcaption>right &rarr; reference</figcaption>
+            </figure>
+        </div>
+        <div class="eq">
+            <span class="lbl">H<sub>left&rarr;ref</sub> =</span>
+            <span class="mat"><span>1.68</span><span>&minus;0.09</span><span>&minus;749.49</span><span>0.29</span><span>1.39</span><span>&minus;244.09</span><span>5.08e&minus;4</span><span>&minus;5.92e&minus;5</span><span>1.00</span></span>
+        </div>
+        <div class="eq">
+            <span class="lbl">H<sub>right&rarr;ref</sub> =</span>
+            <span class="mat"><span>0.62</span><span>0.03</span><span>359.32</span><span>&minus;0.15</span><span>0.86</span><span>81.59</span><span>&minus;2.69e&minus;4</span><span>7.43e&minus;6</span><span>1.00</span></span>
+        </div>
+    </section>
+
+    <section>
+        <h2>A.3</h2>
+        <p>We now need to do our interpolation. We have two methods available to us; nearest neighbors and bilinear.</p>
+        <p>In both cases, we warp some image using inverse warping. Thus, first, we recover the boundary points of the original image; we pass it through H to then find the boundary points in this new warped space. These new points may be negative, but we need to visualize them in numpy arrays (with nonnegative indices), and thus we create a new output array for the warped images that matches the dimensions of the new warped image. We go from the floor of the lowest x-coordinate of the boundary points to the ceiling of the highest; and do a similar procedure for y.</p>
+        <p>With this shape, we can now figure out each of the specific coordinates in this new “warped space.” For each of these coordinates, we conduct an inverse warp, so we map them back to their corresponding pixel in the input image. We do so by simply multiplying each point by the inverse of H.</p>
+        <p>These points don’t necessarily have to be integers. In nearest neighbors, we map to the nearest integer point; if, instead, we land outside of the input image, we simply set the pixels for all channels at that point to 0, and update our corresponding alpha array as 0, to indicate that we couldn’t fill in a value for this pixel. These alphas will come in handy later!</p>
+        <p>In bilinear interpolation, we take an average of the four closest points, weighted by how close our decimal point maps to each one. This can be done by linearly interpolating the top two points, and separately, the bottom two points, and then interpolating the two resulting ones together. This reduces to nearest neighbors if we map to an integer point, as we will give the three other “closest” points a weight of 0. We consider (0, 0) to be the center of the first pixel for ease.</p>
+        <p>We rectify two images with both interpolation methods: a picture of my laptop case on a table in Gateway (guess where I did this project? 😭) and a painting from a cafe on Solano Avenue.</p>
+        <p>Both objects are rectangles, so I click the points in the image and define my own bounding box by specifying a rectangular height and width.</p>
+        <p>Here are results for both.</p>
+        <div class="row">
+            <figure class="half">
+                <img src="images/table.jpg" alt="Table, original" loading="lazy">
+                <figcaption>table &middot; original</figcaption>
+            </figure>
+            <figure class="half">
+                <img src="outputs/table_rectify_nearest_neighbor.jpg" alt="Table rectified, nearest neighbor" loading="lazy">
+                <figcaption>table &middot; nearest_neighbor: 0.16s</figcaption>
+            </figure>
+            <figure class="half">
+                <img src="outputs/table_rectify_bilinear.jpg" alt="Table rectified, bilinear" loading="lazy">
+                <figcaption>table &middot; bilinear: 0.34s</figcaption>
+            </figure>
+        </div>
+        <div class="eq">
+            <span class="lbl">H =</span>
+            <span class="mat"><span>1.04</span><span>0.43</span><span>&minus;400.81</span><span>&minus;0.18</span><span>1.36</span><span>&minus;399.83</span><span>&minus;1.56e&minus;5</span><span>7.36e&minus;4</span><span>1.00</span></span>
+        </div>
+        <div class="row">
+            <figure class="half">
+                <img src="images/painting.jpg" alt="Painting, original" loading="lazy">
+                <figcaption>painting &middot; original</figcaption>
+            </figure>
+            <figure class="half">
+                <img src="outputs/painting_rectify_nearest_neighbor.jpg" alt="Painting rectified, nearest neighbor" loading="lazy">
+                <figcaption>painting &middot; nearest_neighbor: 0.13s</figcaption>
+            </figure>
+            <figure class="half">
+                <img src="outputs/painting_rectify_bilinear.jpg" alt="Painting rectified, bilinear" loading="lazy">
+                <figcaption>painting &middot; bilinear: 0.30s</figcaption>
+            </figure>
+        </div>
+        <div class="eq">
+            <span class="lbl">H =</span>
+            <span class="mat"><span>0.50</span><span>0.02</span><span>&minus;185.45</span><span>&minus;0.34</span><span>0.79</span><span>&minus;95.43</span><span>&minus;5.03e&minus;4</span><span>4.72e&minus;4</span><span>1.00</span></span>
+        </div>
+        <p>Bilinear is considerably slower than nearest neighbors, because we are now looking at four different points in the input image per output pixel rather than just one. This should theoretically lead to better quality outputs, which is hard to visualize at this scale; but if you look very closely (particularly at the laptop cover and the painting frames), you can see that nearest neighbors is a little bit more grainy (and aliases a little bit more), while the bilinear interpolation is a lot cleaner at those edges.</p>
+    </section>
+
+    <section>
+        <h2>A.4</h2>
+        <p>To blend the images into a mosaic, first we warp the left and right reference images, per the description in A2. We take the shifts from the warped left and right images, as well as the dimensions of the reference image, to find the minimum and maximum shift—with the goal of projecting all three images onto a shared canvas. With the minimum and maximum shift, we’re able to figure out the size of our canvas. Then we plot each image to their respective place on the canvas, based on the minimum and maximum shift values we derived.</p>
+        <p>Naively, the alpha mask is just 1 where we were able to interpolate a pixel, and 0 everywhere else. So when figuring out what value to put at a specific pixel, we can take a weighted average of our alpha mask values for the left, reference, and right images with the pixel value. As a walkthrough, if all alphas are 0, our pixel is just 0. If only one image has alpha = 1, then the pixel value comes from that image. If all images have alpha = 1, we take a uniform average of all the pixel values. (Note this is done for all channels, but the code is vectorized).</p>
+        <p>This approach leads to clear seams on our panoramas.</p>
+        <div class="row">
+            <figure class="full">
+                <img src="outputs/cliff_result_naive.jpg" alt="Cliff mosaic, naive blending" loading="lazy">
+                <figcaption>cliff</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/building_result_naive.jpg" alt="Building mosaic, naive blending" loading="lazy">
+                <figcaption>building</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/gateway_result_naive.jpg" alt="Gateway mosaic, naive blending" loading="lazy">
+                <figcaption>gateway</figcaption>
+            </figure>
+        </div>
+        <p>To reduce these edge artifacts, we use the distance transform <code>bwdist</code>, implemented in Python with scipy’s <code>distance_transform_edt</code>. We pad the naive alpha matrix to introduce an edge of 0s around the entire image, and then the distance transform looks at the Euclidean distance to the closest 0, so images near the center get higher alphas, and images near the edge get lower alphas. We can then do the same weighted average with these more sophisticated alpha masks.</p>
+        <div class="row">
+            <figure class="full">
+                <img src="outputs/cliff_result_alpha_mask.jpg" alt="Cliff mosaic, distance transform blending" loading="lazy">
+                <figcaption>cliff</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/building_result_alpha_mask.jpg" alt="Building mosaic, distance transform blending" loading="lazy">
+                <figcaption>building</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/gateway_result_alpha_mask.jpg" alt="Gateway mosaic, distance transform blending" loading="lazy">
+                <figcaption>gateway</figcaption>
+            </figure>
+        </div>
+        <p>This is better, as the edge artifacts have largely disappeared. However, we’re seeing a lot of ghosting of high-frequency terms; you can see how blurry the building warp is near the door, and the cliffs/ocean near the rocks.</p>
+        <p>To mitigate this, we separate the frequencies. It’s not quite a Laplacian pyramid, as we’re not doing any downsizing, but we do use Laplacian blending techniques. We do a Gaussian blur over each warped image to extract the low frequencies, and subtract from the original image to get the high frequencies. We combine the low frequencies with the <code>distance_transform_edt</code> alpha mask. For the high frequencies, we do not want to blend them; rather we want to choose one image per pixel to retain them from. So we find the largest alpha across the left, reference, and right masks, and only keep the high-frequency information for the image corresponding to that largest alpha (essentially an argmax). This is much better; you can see the high-frequency detail return to the door of the building, the rocks in the ocean, and the staircase of the Gateway.</p>
+        <div class="row">
+            <figure class="full">
+                <img src="outputs/cliff_result_laplacian.jpg" alt="Cliff mosaic, frequency separated blending" loading="lazy">
+                <figcaption>cliff</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/building_result_laplacian.jpg" alt="Building mosaic, frequency separated blending" loading="lazy">
+                <figcaption>building</figcaption>
+            </figure>
+            <figure class="full">
+                <img src="outputs/gateway_result_laplacian.jpg" alt="Gateway mosaic, frequency separated blending" loading="lazy">
+                <figcaption>gateway</figcaption>
+            </figure>
+        </div>
+    </section>
+</main>
+</body>
+</html>

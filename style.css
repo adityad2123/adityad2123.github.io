@@ -107,6 +107,47 @@ code { font-size: .88em; }
 
 math[display="block"] { margin: 1.5rem 0; font-size: 1.2rem; }
 
+/* --- math and code --- */
+
+.eq { text-align: center; margin: 1.6rem 0; font-size: 1.1rem; }
+.eq .lbl { font-style: italic; margin-right: .5em; }
+
+/* bracketed matrix */
+.mat {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(3, auto);
+  gap: .55em 1.9em;
+  padding: .7em 1.35em;
+  text-align: right;
+  line-height: 1.4;
+  font-variant-numeric: lining-nums tabular-nums;
+  vertical-align: middle;
+}
+
+.mat::before, .mat::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: .55em;
+  border: 1.5px solid var(--ink);
+}
+
+.mat::before { left: 0;  border-right: 0; }
+.mat::after  { right: 0; border-left: 0; }
+
+.mat sub { font-size: .75em; }
+
+pre {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  font-size: .8rem;
+  line-height: 1.55;
+  margin: 1.5rem 0;
+}
+
 /* --- links --- */
 
 a {
