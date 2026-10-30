@@ -67,7 +67,6 @@
 
     <section>
         <h2>A.2</h2>
-        <p><code>H = computeH(im1_pts, im2_pts)</code></p>
         <p>Here’s my implementation of the system of equations.</p>
 <pre><code>def compute_H(im1_pts, im2_pts):
     A = []
@@ -213,6 +212,86 @@
             <span class="mat"><span>0.50</span><span>0.02</span><span>&minus;185.45</span><span>&minus;0.34</span><span>0.79</span><span>&minus;95.43</span><span>&minus;5.03e&minus;4</span><span>4.72e&minus;4</span><span>1.00</span></span>
         </div>
         <p>Bilinear is considerably slower than nearest neighbors, because we are now looking at four different points in the input image per output pixel rather than just one. This should theoretically lead to better quality outputs, which is hard to visualize at this scale; but if you look very closely (particularly at the laptop cover and the painting frames), you can see that nearest neighbors is a little bit more grainy (and aliases a little bit more), while the bilinear interpolation is a lot cleaner at those edges.</p>
+
+        <p>Implementations of the functions below.</p>
+<pre><code>def warpImageNearestNeighbor(im, H):
+    # define boundary points for original image
+    boundaries = np.array([[0, 0, im.shape[1]-1, im.shape[1]-1],
+                              [0, im.shape[0]-1, 0, im.shape[0]-1],
+                              [1, 1, 1, 1],])
+    # find corresponding output boundaries in homogenous coords
+    output_boundaries = H @ boundaries
+    x_y_output = output_boundaries[:2] / output_boundaries[2]
+    # find max and min x
+    x_min, x_max = x_y_output[0].min(), x_y_output[0].max()
+    y_min, y_max = x_y_output[1].min(), x_y_output[1].max()
+
+    # get the discrete coordinates that match x_min and x_max, put them in a matrix
+    Xs, Ys = np.meshgrid(np.arange(floor(x_min), ceil(x_max) + 1), np.arange(floor(y_min), ceil(y_max) + 1))
+    all_points = np.stack([Xs.flatten(), Ys.flatten(), np.ones_like(Xs).flatten()])
+
+    # get the corresponding points in the input image
+    transformed_points = np.linalg.inv(H) @ all_points
+    # create empty array for output image
+    output_image = np.zeros((ceil(y_max) - floor(y_min) + 1, ceil(x_max) - floor(x_min) + 1, im.shape[2]))
+    output_alpha_mask = np.zeros((ceil(y_max) - floor(y_min) + 1, ceil(x_max) - floor(x_min) + 1))
+    # iterate through all sets of points
+
+    # vectorized implementation
+    wx, wy, w = transformed_points[0], transformed_points[1], transformed_points[2]
+    x, y = all_points[0], all_points[1]
+    x_input = np.round(wx / w).astype(int)
+    y_input = np.round(wy / w).astype(int)
+    valid_mask = (x_input &gt;= 0) &amp; (y_input &gt;= 0) &amp; (y_input &lt; im.shape[0]) &amp; (x_input &lt; im.shape[1])
+    output_alpha_mask[(y - floor(y_min))[valid_mask], (x - floor(x_min))[valid_mask]] = 1
+    output_image[(y - floor(y_min))[valid_mask], (x - floor(x_min))[valid_mask], :] = im[y_input[valid_mask], x_input[valid_mask], :]
+
+    return output_image, output_alpha_mask, floor(x_min), floor(y_min)</code></pre>
+
+<pre><code>def warpImageBilinear(im, H):
+    # define boundary points for original image
+    boundaries = np.array([[0, 0, im.shape[1]-1, im.shape[1]-1],
+                              [0, im.shape[0]-1, 0, im.shape[0]-1],
+                              [1, 1, 1, 1],])
+    # find corresponding output boundaries in homogenous coords
+    output_boundaries = H @ boundaries
+    x_y_output = output_boundaries[:2] / output_boundaries[2]
+    # find max and min x
+    x_min, x_max = x_y_output[0].min(), x_y_output[0].max()
+    y_min, y_max = x_y_output[1].min(), x_y_output[1].max()
+
+    # get the discrete coordinates that match x_min and x_max, put them in a matrix
+    Xs, Ys = np.meshgrid(np.arange(floor(x_min), ceil(x_max) + 1), np.arange(floor(y_min), ceil(y_max) + 1))
+    all_points = np.stack([Xs.flatten(), Ys.flatten(), np.ones_like(Xs).flatten()])
+
+    # get the corresponding points in the input image
+    transformed_points = np.linalg.inv(H) @ all_points
+    # create empty array for output image
+    output_image = np.zeros((ceil(y_max) - floor(y_min) + 1, ceil(x_max) - floor(x_min) + 1, im.shape[2]))
+    output_alpha_mask = np.zeros((ceil(y_max) - floor(y_min) + 1, ceil(x_max) - floor(x_min) + 1))
+
+    # vectorized implementation
+    wx, wy, w = transformed_points[0], transformed_points[1], transformed_points[2]
+    x, y = all_points[0], all_points[1]
+    x_input = wx / w
+    y_input = wy / w
+    valid_mask = (x_input &gt;= 0) &amp; (y_input &gt;= 0) &amp; (y_input &lt; im.shape[0]) &amp; (x_input &lt; im.shape[1])
+
+    x0 = np.floor(x_input).astype(int)[valid_mask]
+    x1 = np.clip(np.floor(x_input).astype(int) + 1, 0, im.shape[1]-1)[valid_mask]
+    y0 = np.floor(y_input).astype(int)[valid_mask]
+    y1 = np.clip(np.floor(y_input).astype(int) + 1, 0, im.shape[0]-1)[valid_mask]
+
+    dx = (x_input - np.floor(x_input).astype(int))[valid_mask][:, np.newaxis]
+    dy = (y_input - np.floor(y_input).astype(int))[valid_mask][:, np.newaxis]
+
+    top = im[y0, x0] * (1-dx) + im[y0, x1] * dx
+    bottom = im[y1, x0] * (1-dx) + im[y1, x1] * dx
+    interpolated = top * (1-dy) + bottom * dy
+    output_alpha_mask[(y - floor(y_min))[valid_mask], (x - floor(x_min))[valid_mask]] = 1
+    output_image[(y - floor(y_min))[valid_mask], (x - floor(x_min))[valid_mask], :] = interpolated
+
+    return output_image, output_alpha_mask, floor(x_min), floor(y_min)</code></pre>
     </section>
 
     <section>
